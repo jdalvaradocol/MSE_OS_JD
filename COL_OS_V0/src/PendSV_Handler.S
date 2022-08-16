@@ -28,7 +28,7 @@
 PendSV_Handler:
 
 	/*
-	* Cuando se ingresa al handler de PendSV lo primero que se ejecuta es un push para
+	* Cuando se ingrea al handler de PendSV lo primero que se ejecuta es un push para
 	* guardar los registros R4-R11 y el valor de LR, que en este punto es EXEC_RETURN
 	* El push se hace al reves de como se escribe en la instruccion, por lo que LR
 	* se guarda en la posicion 9 (luego del stack frame). Como la funcion getContextoSiguiente
@@ -41,10 +41,10 @@ PendSV_Handler:
 	* NOTA: El primer ingreso a este handler (luego del reset) implica que el push se hace sobre el
 	* stack inicial, ese stack se pierde porque no hay seguimiento del MSP en el primer ingreso
 	*/
-	push 	{r4-r11,lr}
-	mrs 	r0,msp
-	bl 		getContextoSiguiente
-	msr 	msp,r0
-	pop 	{r4-r11,lr}				//Recuperados todos los valores de registros
-	bx 		lr						//se hace un branch indirect con el valor de LR que es nuevamente EXEC_RETURN
+	push {r4-r11,lr}
+	mrs r0,msp
+	bl getContextoSiguiente
+	msr msp,r0
+	pop {r4-r11,lr}			//Recuperados todos los valores de registros
+	bx lr					//se hace un branch indirect con el valor de LR que es nuevamente EXEC_RETURN
 

@@ -1,11 +1,10 @@
 /*==================[inclusions]=============================================*/
 
-#include "../../COL_RTOS/inc/main.h"
-
+#include "main.h"
 #include "sapi.h"
 #include "board.h"
-#include "../inc/COL_OS_Core.h"
-#include "../inc/Teclas.h"
+
+#include "../inc/COL_RTOS_Core.h"
 
 
 /*==================[macros and definitions]=================================*/
@@ -13,15 +12,13 @@
 #define MILISEC		1000
 
 /*==================[definiciones de datos internos]=========================*/
-
 const gpioMap_t leds_t[] = {LEDB, LED1, LED2, LED3};
-uint32_t led_state[4];
+
 #define LEDS_COUNT   sizeof(leds_t)/sizeof(leds_t[0])
 
 /*==================[Global data declaration]==============================*/
 
-tarea_t leds[LEDS_COUNT];
-tarea_t teclas[LEDS_COUNT];
+tarea_t stack[LEDS_COUNT];
 
 /*==================[internal functions declaration]=========================*/
 
@@ -58,71 +55,63 @@ void delay_ciclo(int delay)
 /*==================[Definicion de tareas para el OS]==========================*/
 
 // Implementacion de funcion de la tarea
-
-void tarea_led(void *parameter )
+void tarea_led1(void)
 {
-	int id = (int) parameter;
-
      while( TRUE )
     {
-    	 gpioToggle( leds_t[id]);
-      	 delay_ciclo(100);
+        gpioWrite( leds_t[0], ON );
+	    delay_ciclo(200);
+        gpioWrite( leds_t[0], OFF );
+   	    delay_ciclo(200);
+
     }
 }
-
-void tarea_tecla(void *parameter )
+void tarea_led2(void)
 {
-	int id = (int) parameter;
+     while( TRUE )
+    {
+        gpioWrite( leds_t[1], ON );
+	    delay_ciclo(200);
+        gpioWrite( leds_t[1], OFF );
+   	    delay_ciclo(200);
 
-	uint32_t volatile event = 0;
-	bool_t state = FALSE;
-
-	while( TRUE )
-	{
-
-		event = keys_update(id);
-
-		 if(event == ON)
-		 {
-			 if (state == TRUE)
-			 {
-				 state = FALSE;
-			 }
-			 else
-			 {
-				 state = TRUE;
-			 }
-
-			 if(state == TRUE)
-			 {
-				 Os_Blocked_tarea(id);
-			 }
-			 else if(state == FALSE)
-			 {
-				 Os_unBlocked_tarea(id);
-			 }
-
-		 }
-	}
+    }
 }
+void tarea_led3(void)
+{
+     while( TRUE )
+    {
+        gpioWrite( leds_t[2], ON );
+	    delay_ciclo(200);
+        gpioWrite( leds_t[2], OFF );
+   	    delay_ciclo(200);
 
+    }
+}
+void tarea_led4(void)
+{
+     while( TRUE )
+    {
+        gpioWrite( leds_t[3], ON );
+	    delay_ciclo(200);
+        gpioWrite( leds_t[3], OFF );
+   	    delay_ciclo(200);
+
+    }
+}
 
 /*============================================================================*/
 
 int main(void)  {
 
 	initHardware();
-	keys_init(LEDS_COUNT, led_state);
 
-	for(int i= 0; i < LEDS_COUNT; i++)
-	{
-		  leds[i].parametros = (void*)i;
-		teclas[i].parametros = (void*)i;
-		Os_crear_tarea(tarea_led, &leds[i]);
-		Os_crear_tarea(tarea_tecla, &teclas[i]);
-	}
+	RTOS_Init();
 
-	Os_Init();
+	crear_tarea(tarea_led1, &stack[0]);
+	crear_tarea(tarea_led2, &stack[1]);
+	crear_tarea(tarea_led3, &stack[2]);
+	crear_tarea(tarea_led4, &stack[3]);
 
 	while (1)
 	{}

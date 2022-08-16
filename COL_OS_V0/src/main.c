@@ -4,21 +4,25 @@
 #include "sapi.h"
 #include "board.h"
 
-#include "../inc/COL_RTOS_Core.h"
+#include "MSE_OS_Core.h"
 
 
 /*==================[macros and definitions]=================================*/
 
 #define MILISEC		1000
 
-/*==================[definiciones de datos internos]=========================*/
-const gpioMap_t leds_t[] = {LEDB, LED1, LED2, LED3};
-
-#define LEDS_COUNT   sizeof(leds_t)/sizeof(leds_t[0])
+#define NUM_TAREAS 		4
 
 /*==================[Global data declaration]==============================*/
 
-tarea_t stack[LEDS_COUNT];
+uint32_t stack1[STACK_SIZE];		//espacio reservado para el stack de la tarea 1
+uint32_t stack2[STACK_SIZE];		//espacio reservado para el stack de la tarea 2
+uint32_t stack3[STACK_SIZE];		//espacio reservado para el stack de la tarea 3
+uint32_t stack4[STACK_SIZE];		//espacio reservado para el stack de la tarea 4
+
+uint32_t TAREAS = NUM_TAREAS;
+uint32_t sp_tarea[NUM_TAREAS];					//Stack Pointer para las tareas
+
 
 /*==================[internal functions declaration]=========================*/
 
@@ -37,11 +41,9 @@ static void initHardware(void)  {
 	SysTick_Config(SystemCoreClock / MILISEC);		//systick 1ms
 
 }
-/** @brief Funcion para realizar delay bloqueantes
- *	@return none
- */
 
-void delay_ciclo(int delay)
+
+int delay_ciclo(int delay)
 {
 
 	for (int volatile i = 0; i < delay; i++)
@@ -53,51 +55,67 @@ void delay_ciclo(int delay)
 
 
 /*==================[Definicion de tareas para el OS]==========================*/
+void tarea1(void)  {
+	uint16_t h = 0;
+	uint16_t i = 0;
+	while (1)
+	{
 
-// Implementacion de funcion de la tarea
-void tarea_led1(void)
-{
-     while( TRUE )
-    {
-        gpioWrite( leds_t[0], ON );
+		gpioWrite(LEDR,FALSE);
 	    delay_ciclo(200);
-        gpioWrite( leds_t[0], OFF );
-   	    delay_ciclo(200);
+		gpioWrite(LEDR,TRUE);
+	    delay_ciclo(200);
 
-    }
+		h++;	i++;
+	}
 }
-void tarea_led2(void)
-{
-     while( TRUE )
-    {
-        gpioWrite( leds_t[1], ON );
-	    delay_ciclo(200);
-        gpioWrite( leds_t[1], OFF );
-   	    delay_ciclo(200);
 
-    }
+void tarea2(void)  {
+	uint16_t j = 0;
+	uint16_t k = 0;
+
+	while (1)
+	{
+
+		gpioWrite(LED1,FALSE);
+	    delay_ciclo(200);
+		gpioWrite(LED1,TRUE);
+	    delay_ciclo(200);
+
+		j++;	k++;
+	}
 }
-void tarea_led3(void)
-{
-     while( TRUE )
-    {
-        gpioWrite( leds_t[2], ON );
-	    delay_ciclo(200);
-        gpioWrite( leds_t[2], OFF );
-   	    delay_ciclo(200);
 
-    }
+void tarea3(void)  {
+	uint16_t j = 0;
+	uint16_t k = 0;
+
+	while (1)
+	{
+
+		gpioWrite(LED2,FALSE);
+	    delay_ciclo(200);
+		gpioWrite(LED2,TRUE);
+	    delay_ciclo(200);
+
+		j++;	k++;
+	}
 }
-void tarea_led4(void)
-{
-     while( TRUE )
-    {
-        gpioWrite( leds_t[3], ON );
-	    delay_ciclo(200);
-        gpioWrite( leds_t[3], OFF );
-   	    delay_ciclo(200);
 
-    }
+void tarea4(void)  {
+	uint16_t j = 0;
+	uint16_t k = 0;
+
+	while (1)
+	{
+
+		gpioWrite(LED3,FALSE);
+	    delay_ciclo(200);
+		gpioWrite(LED3,TRUE);
+	    delay_ciclo(200);
+
+		j++;	k++;
+	}
 }
 
 /*============================================================================*/
@@ -106,15 +124,15 @@ int main(void)  {
 
 	initHardware();
 
-	RTOS_Init();
+	os_Init();
 
-	crear_tarea(tarea_led1, &stack[0]);
-	crear_tarea(tarea_led2, &stack[1]);
-	crear_tarea(tarea_led3, &stack[2]);
-	crear_tarea(tarea_led4, &stack[3]);
+	os_InitTarea(tarea1, &stack1, &sp_tarea[0]);
+	os_InitTarea(tarea2, &stack2, &sp_tarea[1]);
+	os_InitTarea(tarea3, &stack3, &sp_tarea[2]);
+	os_InitTarea(tarea4, &stack4, &sp_tarea[3]);
 
-	while (1)
-	{}
+	while (1) {
+	}
 }
 
 /** @} doxygen end group definition */

@@ -2,8 +2,8 @@
  * COL_RTOS_Core.h
  */
 
-#ifndef COL_OS_CORE_H_
-#define COL_OS_CORE_H_
+#ifndef COL_RTOS_CORE_H_
+#define COL_RTOS_CORE_H_
 
 #include <stdint.h>
 #include "board.h"
@@ -14,7 +14,7 @@
  ***********************************************************************************/
 
 #define STACK_SIZE 	256
-#define MAX_TAREAS 	4
+#define MAX_TAREAS 	8
 
 //----------------------------------------------------------------------------------
 
@@ -47,10 +47,8 @@
 #define STACK_LR_PREV_VALUE			STACK_SIZE/4 - LR_PREV_VALUE
 #define STACK_FULL_STACKING_SIZE	STACK_SIZE/4 - FULL_STACKING_SIZE
 
-#define TAREA_INIT					0
-#define TAREA_IDLE					1
-#define NUMERO_PRIORIDADES			4
-#define SIZE						NUMERO_PRIORIDADES + TAREA_IDLE
+#define TAREA_INIT					-1
+#define NUM_PRIORIDADES				05
 
 
 /************************************************************************************
@@ -66,26 +64,25 @@ typedef struct
 	uint32_t 	id;								// id Tarea.
 } 	tarea_t;
 
+
 struct _control_t
 {
-	 int    	estado;								// Variable del estado del RTOS
-	 int        contexto;							// Variable del estado del RTOS
-	 int 	 	prioridad_actual;							// Variable de la tarea sigueinte.
-	 int 	 	prioridad_siguiente;							// Variable de la tarea sigueinte.
-	 int  	 	tarea_actual;						// Variable de la tarea actual.
-	 int 	 	tarea_siguiente;					// Variable de la tarea sigueinte.
-	 tarea_t   *id_tarea[MAX_TAREAS*SIZE];				// Variable de identificacion de la tarea
-	 uint8_t 	num_act_tareas[SIZE];				// Numero de tareas activas definidas por el usuario.
-	 uint8_t 	num_ini_tareas[SIZE];				// Numero de tareas iniciales definidas por el usuario.
-	 uint32_t   stack_tareas [SIZE][MAX_TAREAS];	// Arreglo con los stack_pointer para relizar el cambio de tarea.
-	 int 	estado_tareas[SIZE][MAX_TAREAS];		// Estado de la tarea (RUNNING, READY y BLOCKED).
+	 uint8_t    estado;										// Variable del estado del RTOS
+	 uint8_t    contexto;										// Variable del estado del RTOS
+	 int  	 	tarea_actual;									// Variable de la tarea actual.
+	 int 	 	tarea_siguiente;								// Variable de la tarea sigueinte.
+	 uint8_t 	num_act_tareas[NUM_PRIORIDADES];				// Numero de tareas activas definidas por el usuario.
+	 uint8_t 	num_ini_tareas[NUM_PRIORIDADES];				// Numero de tareas iniciales definidas por el usuario.
+	 void 	   *stack_tareas [NUM_PRIORIDADES][MAX_TAREAS];	// Arreglo con los stack_pointer para relizar el cambio de tarea.
+	 uint8_t 	estado_tareas[NUM_PRIORIDADES][MAX_TAREAS];	// Estado de la tarea (RUNNING, READY y BLOCKED).
 };
 typedef struct  _control_t control_t;
 
 enum _estado  {
 	RTOS_RUNNING,
 	RTOS_RESET,
-	RTOS_IDLE
+	RTOS_IDLE,
+	RTOS_BLOCKED
 };
 
 enum _tarea  {
@@ -122,8 +119,6 @@ void Os_Blocked_tarea(int id);
 void Os_unBlocked_tarea(int id);
 void Os_crear_tarea(void *tarea, tarea_t *stack);
 
-void Os_Ini_Critica(void);
-void Os_Fin_Critica(void);
 void Os_Init(void);
 
 #endif /* ISO_I_2020_MSE_OS_INC_MSE_OS_CORE_H_ */

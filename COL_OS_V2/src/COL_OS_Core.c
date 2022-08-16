@@ -48,8 +48,7 @@ void Os_Fin_Critica(void)
 
 void Os_crear_tarea(void *ptr_funct, tarea_t *tarea)
 {
-	static int index_tarea[SIZE];
-	static int index = 0;
+	static int index_tarea = 0;
 
 	tarea->stack_tarea[STACK_R0]            = tarea->parametros;
 	tarea->stack_tarea[STACK_XPSR]          = INIT_XPSR;									// Necesaria para bit thumb
@@ -58,122 +57,126 @@ void Os_crear_tarea(void *ptr_funct, tarea_t *tarea)
 
 	tarea->stack_tarea[STACK_LR] = (uint32_t)returnHook;									//Retorno de la tarea (no deberia darse)
 	tarea->stack_pointer  = (uint32_t) (tarea->stack_tarea + STACK_FULL_STACKING_SIZE); 	// Definicion del FULL_STACKING_SIZE
-	tarea->id = index_tarea[tarea->prioridad];
+	tarea->id = index_tarea;
 
-	control.id_tarea[index] = tarea;
-	index++;
-
-	control.estado_tareas[tarea->prioridad][index_tarea[tarea->prioridad]] = READY ;
-	control.stack_tareas[tarea->prioridad][index_tarea[tarea->prioridad]]  = (void*)tarea->stack_pointer ;
-	control.num_act_tareas[tarea->prioridad]++;
-	index_tarea[tarea->prioridad]++;
+	control.estado_tareas[0][index_tarea] = READY ;
+	control.stack_tareas[0][index_tarea] = (void*)tarea->stack_pointer ;
+	control.num_act_tareas[0]++;
+	index_tarea++;
 
 }
 
-void Os_Blocked_tarea(int tarea)
+void Os_Blocked_tarea(int id)
 {
-	int id = 0;
-	int prioridad = 0;
+	int index=0;
+	int contador=0;
 
-	id = control.id_tarea[tarea]->id;
-	prioridad = control.id_tarea[tarea]->prioridad;
+	Os_Ini_Critica();
 
-	control.estado_tareas[prioridad][id] = BLOCKED ;
+	control.tarea_actual = control.tarea_siguiente;
+	control.tarea_siguiente = control.tarea_actual + 1;
 
-	if(control.num_act_tareas[prioridad] > 0)
+	if(control.tarea_siguiente >= (control.num_ini_tareas[0]))
 	{
-		control.num_act_tareas[prioridad]--;
+		control.tarea_siguiente = 0;
 	}
+
+	control.estado = RTOS_BLOCKED;
+	control.estado_tareas[0][id] = BLOCKED ;
+	control.num_act_tareas[0]--;
+
+	Os_Fin_Critica();
+
 }
 
-void Os_unBlocked_tarea(int tarea)
+void Os_unBlocked_tarea(int id)
 {
-	int id = 0;
-	int prioridad = 0;
 
-	id = control.id_tarea[tarea]->id;
-	prioridad = control.id_tarea[tarea]->prioridad;
+	control.tarea_actual = control.tarea_siguiente;
+	control.tarea_siguiente = control.tarea_actual + 1;
 
-	control.estado_tareas[prioridad][id] = READY ;
-    control.estado_tareas[prioridad][control.tarea_actual] = READY;
+	if(control.tarea_siguiente >= (control.num_ini_tareas[0]))
+	{
+		control.tarea_siguiente = 0;
+	}
 
-    if(control.num_act_tareas[prioridad] <  control.num_ini_tareas[prioridad])
-    {
-    	control.num_act_tareas[prioridad]++;
-    }
+	control.num_act_tareas[0]++;
+	control.estado_tareas[0][id] = READY ;
 }
+
 
 void Os_Init(void)
 {
-
-	for(int i=0;i < NUMERO_PRIORIDADES;i++)
-	{
-		control.num_ini_tareas[i] = control.num_act_tareas[i];
-	}
-
-	control.num_ini_tareas[4] = 1;	// Asigna la Tarea_IDLE en la prioridad mas baja para
-
-	control.estado    = RTOS_RESET;
-	control.contexto  = TRUE;
-	control.prioridad_actual = 0;
 	NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS)-1);
+
+	control.num_ini_tareas[0] = control.num_act_tareas[0];
+
+	control.estado = RTOS_RESET;
+	control.contexto = TRUE;
 }
 
-void Os_prioridad(void)
+static void scheduler(void)
 {
-	int i = 0;
 
-	control.prioridad_actual = control.prioridad_siguiente;
-
-	while(control.num_act_tareas[i] == 0)
-	{
-		i++;
-	}
-
-	if(i >= NUMERO_PRIORIDADES)
-	{
-		i = NUMERO_PRIORIDADES;
-	}
-
-	control.prioridad_siguiente = i;
-
-}
-
-
-static void Os_scheduler(void)
-{
 	 int index = 0;
-	 int prioridad;
 
-	 prioridad = control.prioridad_siguiente;
+	 index = control.tarea_actual;
+
+	 if(index == TAREA_INIT)
+	 {
+		 index = 0 ;
+	 }
 
 	 if(control.estado == RTOS_RUNNING)
 	 {
-		control.tarea_actual = control.tarea_siguiente;
-		index = control.tarea_actual + 1;
-
-		if(index >= (control.num_ini_tareas[prioridad])){ index = 0;}
-
-		// Busca la tarea siguiente que se encuentre en READY.
-
-		while(control.estado_tareas[prioridad][index] == BLOCKED)
-		{
-			index++;
-			if(index >= (control.num_ini_tareas[prioridad])) {index = 0;}
-		}
-
-		control.tarea_siguiente = index;
-
-		if( (control.estado_tareas[prioridad][index] == READY) || (control.estado_tareas[prioridad][index] == BLOCKED))
+		if( (control.estado_tareas[0][index] == READY) && (control.estado_tareas[0][index] == BLOCKED))
 		{
 			control.contexto = TRUE;
 		}
-		else if (control.estado_tareas[prioridad][index] == RUNNING)
+
+		control.tarea_actual+=1;
+		index = control.tarea_actual;
+
+		if(control.tarea_actual >= (control.num_ini_tareas[0]))
 		{
-			control.contexto = FALSE;
+			control.tarea_actual = 0;
+
+			if(control.estado_tareas[0][0] == BLOCKED)
+			{
+				control.tarea_actual+=1;
+			}
 		}
 
+		if(control.estado_tareas[0][index] == BLOCKED)
+		{
+			control.tarea_actual+=1;
+		}
+
+		control.tarea_siguiente = control.tarea_actual + 1;
+
+		if(control.tarea_siguiente >= (control.num_ini_tareas[0]))
+		{
+			control.tarea_siguiente = 0;
+		}
+
+	    if(control.estado_tareas[0][control.tarea_siguiente] == BLOCKED)
+		{
+			control.tarea_siguiente+=1;
+		}
 	 }
+	 else if(control.estado == BLOCKED)
+	 {
+		 control.tarea_actual+=1;
+
+		if(control.tarea_actual >= (control.num_ini_tareas[0]))
+		{
+			control.tarea_actual = 0;
+		}
+
+		control.tarea_siguiente = control.tarea_actual + 1;
+
+	 }
+
 	 else
 	 {
 		 // ERROR
@@ -184,9 +187,7 @@ static void Os_scheduler(void)
 void SysTick_Handler(void)
 {
 
-	Os_prioridad();
-
-	Os_scheduler();
+	scheduler();
 
 	if (control.contexto == TRUE)
 	{
@@ -198,31 +199,30 @@ void SysTick_Handler(void)
 
 uint32_t getContextoSiguiente(uint32_t stack_pointer_actual)
 {
-	int index_sig = 0;
-	int index_act = 0;
-	int prioridad_act = 0;
-	int prioridad_sig = 0;
-	uint32_t stack_pointer_siguiente  ;
+	uint32_t 		stack_pointer_siguiente  ;
+	int  volatile 	index_sig = 0;
+	int  volatile 	index_act = 0;
 
-	prioridad_act = control.prioridad_actual;
-	prioridad_sig = control.prioridad_siguiente;
 	index_act = control.tarea_actual;
 	index_sig = control.tarea_siguiente;
 
 	if(control.estado == RTOS_RUNNING)
 	{
-		control.stack_tareas[prioridad_act][index_act] = stack_pointer_actual;
-		stack_pointer_siguiente = control.stack_tareas[prioridad_sig][index_sig];
-
-		control.estado_tareas[prioridad_act][index_act] = READY;
-	    control.estado_tareas[prioridad_sig][index_sig] = RUNNING;
-
+		control.stack_tareas[0][index_act] = (void*) stack_pointer_actual;
+		stack_pointer_siguiente = (uint32_t) control.stack_tareas[0][index_sig];
 	}
 	else if(control.estado == RTOS_RESET)
 	{
-		stack_pointer_siguiente = control.stack_tareas[prioridad_act][0];
-		control.tarea_siguiente = TAREA_INIT;
-		control.estado       	= RTOS_RUNNING;
+		stack_pointer_siguiente = (uint32_t) control.stack_tareas[0][0];
+		control.estado       = RTOS_RUNNING;
+		control.tarea_actual = TAREA_INIT;
+		control.tarea_siguiente = control.tarea_actual + 1;
+	}
+	else if(control.estado == RTOS_BLOCKED)
+	{
+		control.stack_tareas[0][control.tarea_actual] = (void*) stack_pointer_actual;
+		stack_pointer_siguiente = (uint32_t)control.stack_tareas[0][index_sig];
+		control.estado       = RTOS_RUNNING;
 	}
 	else
 	{

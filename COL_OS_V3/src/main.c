@@ -21,9 +21,14 @@ uint32_t led_state[4];
 /*==================[Global data declaration]==============================*/
 
 tarea_t leds[LEDS_COUNT];
-tarea_t teclas[LEDS_COUNT];
+tarea_t teclas_Blocked[LEDS_COUNT];
+tarea_t teclas_unBlocked[LEDS_COUNT];
 
 /*==================[internal functions declaration]=========================*/
+
+int AB[4][2] = { 0, 0,	0, 3,	0, 6,	0, 9};
+
+int AU[4][2] = { 3, 9,	3, 0,	3, 3,	3, 6};
 
 /*==================[internal data definition]===============================*/
 
@@ -54,7 +59,6 @@ void delay_ciclo(int delay)
 	}
 }
 
-
 /*==================[Definicion de tareas para el OS]==========================*/
 
 // Implementacion de funcion de la tarea
@@ -70,42 +74,58 @@ void tarea_led(void *parameter )
     }
 }
 
-void tarea_tecla(void *parameter )
-{
-	int id = (int) parameter;
+//int index;
 
-	uint32_t volatile event = 0;
-	bool_t state = FALSE;
+void tarea_tecla_Blocked(void *parameter )
+{
+ 	int index  = (int) parameter;
+
+	int tarea = 0, id  = 0 ;
+	uint32_t event = 0;
 
 	while( TRUE )
 	{
+
+	    id = AB[index][0];
+	    tarea = AB[index][1];
 
 		event = keys_update(id);
 
 		 if(event == ON)
 		 {
-			 if (state == TRUE)
-			 {
-				 state = FALSE;
-			 }
-			 else
-			 {
-				 state = TRUE;
-			 }
-
-			 if(state == TRUE)
-			 {
-				 Os_Blocked_tarea(id);
-			 }
-			 else if(state == FALSE)
-			 {
-				 Os_unBlocked_tarea(id);
-			 }
-
+			 //index++;
+			 Os_Blocked_tarea(tarea + 0);
+			 Os_Blocked_tarea(tarea + 1);
+			 Os_Blocked_tarea(tarea + 2);
 		 }
 	}
 }
 
+void tarea_tecla_unBlocked(void *parameter )
+{
+	int index  = (int) parameter;
+
+	int tarea = 0, id  =0 ;
+
+	uint32_t event = 0;
+
+	while( TRUE )
+	{
+		 id = AU[index][0];
+		tarea = AU[index][1];
+
+		event = keys_update(id);
+
+		 if(event == ON)
+		 {
+			 //index--;
+			 Os_unBlocked_tarea(tarea + 0);
+			 Os_unBlocked_tarea(tarea + 1);
+			 Os_unBlocked_tarea(tarea + 2);
+		 }
+
+	 }
+}
 
 /*============================================================================*/
 
@@ -116,10 +136,18 @@ int main(void)  {
 
 	for(int i= 0; i < LEDS_COUNT; i++)
 	{
-		  leds[i].parametros = (void*)i;
-		teclas[i].parametros = (void*)i;
-		Os_crear_tarea(tarea_led, &leds[i]);
-		Os_crear_tarea(tarea_tecla, &teclas[i]);
+		leds[i].parametros = (void*) i;
+		leds[i].prioridad =  i;
+
+		teclas_Blocked[i].parametros = (void*) i;
+		teclas_Blocked[i].prioridad = i;
+
+		teclas_unBlocked[i].parametros = (void*) i;
+		teclas_unBlocked[i].prioridad = i;
+
+		Os_crear_tarea( tarea_led			, &leds[i]             );
+		Os_crear_tarea( tarea_tecla_Blocked	, &teclas_Blocked[i]   );
+		Os_crear_tarea( tarea_tecla_unBlocked, &teclas_unBlocked[i] );
 	}
 
 	Os_Init();
