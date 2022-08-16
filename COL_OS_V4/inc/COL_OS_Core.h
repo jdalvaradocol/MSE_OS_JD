@@ -129,7 +129,7 @@ void Os_crear_tarea(void *tarea, tarea_t *stack);
 
 
 void delay_ciclo(int delay);
-uint32_t Os_delay_ms(uint32_t delay, uint32_t id);
+void Os_delay_ms(uint32_t delay, uint32_t id);
 void Os_Ini_Critica(void);
 void Os_Fin_Critica(void);
 void Os_Init(void);

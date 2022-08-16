@@ -215,9 +215,8 @@ static void Os_scheduler(void)
 
 }
 
-uint32_t Os_delay_ms(uint32_t delay, uint32_t id)
+uint32_t Os_delay(uint32_t delay, uint32_t id)
 {
-	tarea_t *tarea = control.id_tarea[id];
 	uint32_t dif_Tick = 0;
 
 	if(control.id_tarea[id]->estado_delay == 0)
@@ -243,6 +242,11 @@ uint32_t Os_delay_ms(uint32_t delay, uint32_t id)
 	}
 
 	return control.id_tarea[id]->estado_delay;
+}
+
+void Os_delay_ms(uint32_t delay, uint32_t id)
+{
+	 while(Os_delay(delay,id)){}
 }
 
 void Actualizar_Tick(void)

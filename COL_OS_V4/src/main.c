@@ -59,10 +59,8 @@ void tarea_led(void *parameter )
     {
     	 gpioToggle( leds_t[id]);
 
-    	 while(Os_delay_ms(500,AB[id][2]))
-    	 {
+    	 Os_delay_ms(100,AB[id][2]);
 
-    	 }
     }
 }
 
